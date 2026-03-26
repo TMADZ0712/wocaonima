@@ -8,9 +8,9 @@
 Adafruit_MPU6050 mpu;
 
 
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+// #define SCREEN_WIDTH 128
+// #define SCREEN_HEIGHT 64
+// Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 
 
@@ -26,11 +26,13 @@ typedef struct{
     float yaw_rate;
     float roll_angle;
     float pitch_angle;
+    float yaw_angle;
 } IMU_values;
 
 IMU_values drone_imu;
 void calibration(){
     int sample = 2000;
+    Serial.println("Calibrating...");
         for (int i = 0; i < sample; i++){
             sensors_event_t a,g,temp;
             mpu.getEvent(&a,&g,&temp);
@@ -47,6 +49,7 @@ void calibration(){
 
         accel_x_offset /= sample;
         accel_y_offset /= sample;
+        Serial.println("Calibration done!");
 }
 void read_sensor(){
     sensors_event_t a,g,temp;
@@ -64,15 +67,17 @@ void read_sensor(){
     float acc_pitch_angle = atan2(-acc_x,sqrt(acc_y*acc_y + acc_z*acc_z)) * convert;
     //Complementary Filter
     float alpha = 0.98;
+    drone_imu.yaw_angle += drone_imu.yaw_rate * dt; // Yaw angle is only integrated from gyro
     drone_imu.roll_angle = alpha * (drone_imu.roll_angle + drone_imu.roll_rate * dt) + (1 - alpha) * acc_roll_angle;
     drone_imu.pitch_angle = alpha * (drone_imu.pitch_angle + drone_imu.pitch_rate * dt) + (1 - alpha) * acc_pitch_angle;
 }
 void setup(){
+    Wire.begin(21,22);
     Serial.begin(115200);
-    if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println("OLED FAILED");
-    while(true);
-  }
+//     if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+//     Serial.println("OLED FAILED");
+//     while(true);
+//   }
 // Try to initialize!
     if (!mpu.begin()) {
         Serial.println("Failed to find MPU6050 chip");
@@ -89,22 +94,24 @@ void setup(){
 void loop(){
     unsigned long long start = micros();
     read_sensor();
-    display.clearDisplay();
-    display.setTextColor(WHITE);
-    display.setCursor(0, 0);
+    // display.clearDisplay();
+    // display.setTextColor(WHITE);
+    // display.setCursor(0, 0);
     
-    display.print("Roll: ");
-    display.println(drone_imu.roll_angle);
+    Serial.print("Roll: ");
+    Serial.print(drone_imu.roll_angle);
+    Serial.print("  |  ");
 
 
-    display.print("Pitch: ");
-    display.println(drone_imu.pitch_angle);
+    Serial.print("Pitch: ");
+    Serial.print(drone_imu.pitch_angle);
+    Serial.print("  |  ");
 
 
-    display.print("Yaw: ");
-    display.println(a.acceleration.z);
-    display.display();
-    while(micros() - start < dt){
+    Serial.print("Yaw: ");
+    Serial.println(drone_imu.yaw_angle);
+    // display.display();
+    while(micros() - start < 4000){
         // Do nothing, just wait for the next reading
     }
 }

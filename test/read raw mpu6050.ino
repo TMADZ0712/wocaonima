@@ -51,7 +51,7 @@ void setup() {
   if(mpu.testConnection() ==  false){
     Serial.println("MPU6050 connection failed");
     while(true);
-  }
+  } 
   else{
     Serial.println("MPU6050 connection successful");
   }
