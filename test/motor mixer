@@ -1,4 +1,4 @@
-#include "raw6050.ino"
+#include "C:\Users\TMADZ\Documents\PlatformIO\Projects\260316-103456-esp32doit-devkit-v1\src\main.cpp"
 #define motorFL 15
 #define motorFR 16
 #define motorBL 17
