@@ -22,6 +22,7 @@ typedef struct{
     //Angle Loop
     float roll_angle;
     float pitch_angle;
+    float yaw_angle;
 } IMU_values;
 IMU_values drone_imu;
 //Struct for PID values
@@ -34,7 +35,11 @@ typedef struct{
     float Integral;
     float Derivative;
 } PID;
-
+typedef struct{
+    float roll = 0;
+    float pitch = 0;
+    float yaw = 0;
+} OUTPUT;
 float PID_calculate(PID *a, float setpoint, float measured_value){
     float error = setpoint - measured_value;
     a->Integral += error * dt;
@@ -53,6 +58,14 @@ PID pitch_angle_pid = {1.0, 0.5, 0.0, 1.0, 0.0, 0.0, 0.0};
 PID pitch_rate_pid = {1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0};
 PID yaw_angle_pid = {1.0, 0.5, 0.0, 1.0, 0.0, 0.0, 0.0};
 PID yaw_rate_pid = {1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0};
+void pid(){
+    // PID_caculate_angle(roll_angle_pid, 0,drone_imu.roll_angle );
+    // PID_caculate_angle(pitch_angle_pid, 0,drone_imu.pitch_angle );
+    // PID_caculate_angle(yaw_angle_pid, 0,drone_imu.yaw_angle );
+    float OUTPUT.roll = PID_calculate(roll_rate_pid, 0,PID_caculate_angle(roll_angle_pid, 0,drone_imu.roll_angle ));
+    float OUTPUT.pitch = PID_calculate(pitch_rate_pid, 0,PID_caculate_angle(pitch_angle_pid, 0,drone_imu.pitch_angle ));
+    float OUTPUT.yaw = PID_calculate(yaw_rate_pid, 0,PID_caculate_angle(yaw_angle_pid, 0,drone_imu.yaw_angle ));
+}
 
 void calibration(){
     int sample = 2000;
@@ -86,12 +99,16 @@ void read_sensor(){
     float acc_z = a.acceleration.z;
     //Roll Angle    (-Offset)
     float acc_roll_angle = atan2(acc_y,acc_z)*convert;
+    //Pitch Angle    (-Offset)
     float acc_pitch_angle = atan2(-acc_x,sqrt(acc_y*acc_y + acc_z*acc_z)) * convert;
+    //Yaw Angle   
+    drone_imu.yaw_angle += drone_imu.yaw_rate * dt;
     //Complementary Filter
     float alpha = 0.98;
     drone_imu.roll_angle = alpha * (drone_imu.roll_angle + drone_imu.roll_rate * dt) + (1 - alpha) * acc_roll_angle;
     drone_imu.pitch_angle = alpha * (drone_imu.pitch_angle + drone_imu.pitch_rate * dt) + (1 - alpha) * acc_pitch_angle;
 }
+
 void setup(){
     Serial.begin(115200);
 // Try to initialize!
@@ -110,6 +127,7 @@ void setup(){
 void loop(){
     unsigned long long start = micros();
     read_sensor();
+    
     while(micros() - start < dt){
         // Do nothing, just wait for the next reading
     }

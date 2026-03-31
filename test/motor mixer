@@ -1,14 +1,15 @@
-#include "C:\Users\TMADZ\Documents\PlatformIO\Projects\260316-103456-esp32doit-devkit-v1\src\main.cpp"
+#include "test\main.cpp"
 #define motorFL 15
 #define motorFR 16
 #define motorBL 17
 #define motorBR 18
+int throttle = 0;
 
 //Speed of the motors
-int speedFL = 0;
-int speedFR = 0;
-int speedBL = 0;
-int speedBR = 0;
+int speedFL = throttle - OUTPUT.roll + OUTPUT.pitch - OUTPUT.yaw;
+int speedFR = throttle + OUTPUT.roll + OUTPUT.pitch + OUTPUT.yaw;
+int speedBL = throttle - OUTPUT.roll - OUTPUT.pitch + OUTPUT.yaw;
+int speedBR = throttle + OUTPUT.roll - OUTPUT.pitch - OUTPUT.yaw;
 
 
 //Set up pin, frequency, resolution
