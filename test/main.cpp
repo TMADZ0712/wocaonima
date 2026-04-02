@@ -3,7 +3,26 @@
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
+//Motor pins
+#define motorFL 15
+#define motorFR 16
+#define motorBL 17
+#define motorBR 18
+//Setup
+int freq = 20000;
+int resolution = 12;
+
 Adafruit_MPU6050 mpu;
+
+//INPUT values
+typedef struct {
+  float roll;
+  float pitch;
+  float yaw;
+  float throttle;   // 0–4095
+  bool  armed;
+} INPUT;
+INPUT input;
 
 unsigned long long start = micros();
 float dt  = 0.004; // 4 milliseconds in seconds
@@ -52,12 +71,14 @@ float PID_caculate_angle(PID *a, float setpoint, float measured_value){
     float error = setpoint - measured_value;
     return a->KP_angle * error;
 }
+////////////////////////////////////////PID SETTINGS////////////////////////////////////////
 PID roll_angle_pid = {1.0, 0.5, 0.0, 1.0, 0.0, 0.0, 0.0};
 PID roll_rate_pid = {1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0};
 PID pitch_angle_pid = {1.0, 0.5, 0.0, 1.0, 0.0, 0.0, 0.0};
 PID pitch_rate_pid = {1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0};
 PID yaw_angle_pid = {1.0, 0.5, 0.0, 1.0, 0.0, 0.0, 0.0};
 PID yaw_rate_pid = {1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0};
+//////////////////////////////////////OUTPUT VALUES AFTER PID//////////////////////////////////////
 void pid(){
     // PID_caculate_angle(roll_angle_pid, 0,drone_imu.roll_angle );
     // PID_caculate_angle(pitch_angle_pid, 0,drone_imu.pitch_angle );
@@ -66,6 +87,13 @@ void pid(){
     float OUTPUT.pitch = PID_calculate(pitch_rate_pid, 0,PID_caculate_angle(pitch_angle_pid, 0,drone_imu.pitch_angle ));
     float OUTPUT.yaw = PID_calculate(yaw_rate_pid, 0,PID_caculate_angle(yaw_angle_pid, 0,drone_imu.yaw_angle ));
 }
+
+
+
+//////////////////////////////////////Calibration//////////////////////////////////////
+
+
+
 
 void calibration(){
     int sample = 2000;
@@ -86,6 +114,13 @@ void calibration(){
         accel_x_offset /= sample;
         accel_y_offset /= sample;
 }
+
+
+
+//////////////////////////////////////Read sensor values and calculate angles//////////////////////////////////////
+
+
+
 void read_sensor(){
     sensors_event_t a,g,temp;
     mpu.getEvent(&a, &g, &temp);
@@ -108,7 +143,27 @@ void read_sensor(){
     drone_imu.roll_angle = alpha * (drone_imu.roll_angle + drone_imu.roll_rate * dt) + (1 - alpha) * acc_roll_angle;
     drone_imu.pitch_angle = alpha * (drone_imu.pitch_angle + drone_imu.pitch_rate * dt) + (1 - alpha) * acc_pitch_angle;
 }
+//////////////////////////////////////Set motor speed based on PID output//////////////////////////////////////
+void speed(){
+    int speedFL = input.throttle - OUTPUT.roll + OUTPUT.pitch - OUTPUT.yaw;
+    int speedFR = input.throttle + OUTPUT.roll + OUTPUT.pitch + OUTPUT.yaw;
+    int speedBL = input.throttle - OUTPUT.roll - OUTPUT.pitch + OUTPUT.yaw;
+    int speedBR = input.throttle + OUTPUT.roll - OUTPUT.pitch - OUTPUT.yaw;
 
+    ledcWrite(motorFL, speedFL);
+    ledcWrite(motorFR, speedFR);
+    ledcWrite(motorBL, speedBL);
+    ledcWrite(motorBR, speedBR);
+}
+
+//////////////////////////////////////Update input values from the controller//////////////////////////////////////
+void update_input(){
+  input.roll = analogRead(RX);
+  input.pitch = analogRead(RY);
+  input.yaw = analogRead(LX);
+  input.throttle = analogRead(LY); 
+  input.armed = digitalRead(Button1);
+}
 void setup(){
     Serial.begin(115200);
 // Try to initialize!
@@ -123,11 +178,18 @@ void setup(){
     mpu.setGyroRange(MPU6050_RANGE_500_DEG);
     mpu.setFilterBandwidth(MPU6050_BAND_44_HZ);
     calibration();
+    ledcAttachChannel(motorFL, freq, resolution);
+    ledcAttachChannel(motorFR, freq, resolution);
+    ledcAttachChannel(motorBL, freq, resolution);
+    ledcAttachChannel(motorBR, freq, resolution);
 }
 void loop(){
     unsigned long long start = micros();
+    update_input();
     read_sensor();
-    
+    pid();
+
+    speed();
     while(micros() - start < dt){
         // Do nothing, just wait for the next reading
     }

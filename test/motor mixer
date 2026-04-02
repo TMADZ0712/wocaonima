@@ -6,11 +6,10 @@
 int throttle = 0;
 
 //Speed of the motors
-int speedFL = throttle - OUTPUT.roll + OUTPUT.pitch - OUTPUT.yaw;
-int speedFR = throttle + OUTPUT.roll + OUTPUT.pitch + OUTPUT.yaw;
-int speedBL = throttle - OUTPUT.roll - OUTPUT.pitch + OUTPUT.yaw;
-int speedBR = throttle + OUTPUT.roll - OUTPUT.pitch - OUTPUT.yaw;
-
+    int speedFL = input.throttle - OUTPUT.roll + OUTPUT.pitch - OUTPUT.yaw;
+    int speedFR = input.throttle + OUTPUT.roll + OUTPUT.pitch + OUTPUT.yaw;
+    int speedBL = input.throttle - OUTPUT.roll - OUTPUT.pitch + OUTPUT.yaw;
+    int speedBR = input.throttle + OUTPUT.roll - OUTPUT.pitch - OUTPUT.yaw;
 
 //Set up pin, frequency, resolution
 int freq = 20000;
